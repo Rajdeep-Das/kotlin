@@ -80,7 +80,6 @@ public class JsInliner extends JsVisitorWithContextImpl {
         }
         FunctionReader functionReader = new FunctionReader(reporter, config, currentModuleName, fragments);
         JsInliner inliner = new JsInliner(config, functions, accessors, functionReader, trace);
-        List<JsNode> nodesToPostProcess = new ArrayList<>();
 
         for (JsStatement statement : importStatements) {
             inliner.processImportStatement(statement);
@@ -92,18 +91,16 @@ public class JsInliner extends JsVisitorWithContextImpl {
 
             // There can be inlined function in top-level initializers, we need to optimize them as well
             JsFunction fakeInitFunction = new JsFunction(JsDynamicScope.INSTANCE, fragment.getInitializerBlock(), "");
-            inliner.accept(new JsBlock(new JsExpressionStatement(fakeInitFunction)));
+            JsGlobalBlock initWrapper = new JsGlobalBlock();
+            initWrapper.getStatements().add(new JsExpressionStatement(fakeInitFunction));
+            inliner.accept(initWrapper);
+            initWrapper.getStatements().remove(initWrapper.getStatements().size() - 1);
 
             inliner.inliningContexts.pop();
+            fragment.getInitializerBlock().getStatements().addAll(0, initWrapper.getStatements());
             JsBlock block = new JsBlock(fragment.getDeclarationBlock(), fragment.getInitializerBlock(), fragment.getExportBlock());
-            nodesToPostProcess.add(block);
+            RemoveUnusedFunctionDefinitionsKt.removeUnusedFunctionDefinitions(block, CollectUtilsKt.collectNamedFunctions(block));
         }
-
-        Map<JsName, JsFunction> jsFunctions = new HashMap<>();
-        for (Map.Entry<JsName, FunctionWithWrapper> entry : functions.entrySet()) {
-            jsFunctions.put(entry.getKey(), entry.getValue().getFunction());
-        }
-        RemoveUnusedFunctionDefinitionsKt.removeUnusedFunctionDefinitions(nodesToPostProcess, jsFunctions);
     }
 
     private JsInliner(
@@ -373,8 +370,6 @@ public class JsInliner extends JsVisitorWithContextImpl {
                 if (!extractImportTagImpl(nameRef.getQualifier(), sb)) {
                     return false;
                 }
-            }
-            else {
                 sb.append('.');
             }
             sb.append(JsToStringGenerationVisitor.javaScriptString(nameRef.getIdent()));

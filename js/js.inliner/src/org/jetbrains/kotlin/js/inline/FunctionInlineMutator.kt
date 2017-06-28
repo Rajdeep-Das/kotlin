@@ -43,7 +43,7 @@ class FunctionInlineMutator(
         val functionContext = inliningContext.functionContext
         val (function, wrapper) = functionContext.getFunctionDefinition(call)
         invokedFunction = uncoverClosure(function.deepCopy())
-        this.wrapper = wrapper
+        this.wrapper = wrapper?.deepCopy()
         body = invokedFunction.body
     }
 
