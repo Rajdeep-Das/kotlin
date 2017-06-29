@@ -95,9 +95,7 @@ fun KtParameter.toPsiParameters(): Collection<PsiParameter> {
                 else -> null
             } ?: return emptyList()
 
-    return methods.mapNotNull {
-        if (it.parameterList.parametersCount > lightParamIndex) it.parameterList.parameters[lightParamIndex] else null
-    }
+    return methods.mapNotNull { it.parameterList.parameters.getOrNull(lightParamIndex) }
 }
 
 private fun KtParameter.toAnnotationLightMethod(): PsiMethod? {
