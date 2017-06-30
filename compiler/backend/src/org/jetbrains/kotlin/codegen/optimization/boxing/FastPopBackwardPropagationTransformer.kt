@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.codegen.optimization.boxing
 
+import org.jetbrains.kotlin.codegen.optimization.common.findPreviousOrNull
 import org.jetbrains.kotlin.codegen.optimization.transformer.MethodTransformer
 import org.jetbrains.org.objectweb.asm.Opcodes
 import org.jetbrains.org.objectweb.asm.tree.AbstractInsnNode
@@ -36,7 +37,7 @@ class FastPopBackwardPropagationTransformer : MethodTransformer() {
 
         for (i in 1 until insns.size) {
             val insn = insns[i]
-            val prev = insns[i - 1]
+            val prev = insn.findPreviousOrNull { it.opcode != Opcodes.NOP } ?: continue
 
             when (insn.opcode) {
                 Opcodes.POP -> {
